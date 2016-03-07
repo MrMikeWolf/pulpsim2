@@ -30,7 +30,7 @@ t_grid = numpy.array([n * dt for n in range(N)])
 
 # ### Specify System Parameters and the Reaction Term
 
-# State initial starting conditions 
+# State initial starting conditions
 
 # In[3]:
 
