@@ -34,7 +34,7 @@ t_grid = numpy.array([n * dt for n in range(N)])
 
 # In[3]:
 
-D = 1.1952024623899164e-05 * 1000  # diffusion rate (only hydroxide)
+D = 1.1952024623899164e-05 * 10  # diffusion rate (only hydroxide)
 
 sigma = float(D * dt) / float((2. * dx * dx))
 
@@ -45,7 +45,7 @@ sigma = float(D * dt) / float((2. * dx * dx))
 
 L = numpy.array([0.27 for i in range(0, J)])
 CC = numpy.array([0.776 for i in range(0, J)])
-CA = numpy.array([.8] + [0 for i in range(1, J)])
+CA = numpy.array([8] + [0 for i in range(1, J)])
 C = numpy.array([L, CC, CA])
 # Let us plot our initial condition for confirmation:
 
@@ -80,8 +80,8 @@ B_CA = numpy.diagflat([sigma for i in range(J - 1)], -1) + numpy.diagflat(
 
 # In[21]:
 
-CS = 0.18
-SF = 10
+CS = 8
+SF = 1
 
 
 def f_vec(C, TC):
@@ -93,11 +93,11 @@ def f_vec(C, TC):
 
         dLdt = lambda L, CC, CA, TC: multiply(dt, multiply((36.2 * TC ** 0.5 * exp(-4807.69 / TC)), L))
         dCCdt = lambda L, CC, CA, TC: multiply(dt, multiply(multiply(2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC), L),
-                                                            power(CA,0.11)))
+                                                            power(CA, 0.11)))
         dCAdt = lambda L, CC, CA, TC: multiply(dt, multiply(SF,
                                                             add((-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L,
                                                                 1.81e-2 * 2.53 * 36.2 * T ** 0.5 * exp(
-                                                                    -4807.69 / TC) * L * power(CA,0.11))))
+                                                                    -4807.69 / TC) * L * power(CA, 0.11))))
 
     elif L[0] >= .025:
 
@@ -128,14 +128,7 @@ def f_vec(C, TC):
 
     return dLdt, dCCdt, dCAdt
 
-
-# In[]:
-# vec_L,vec_C, vec_CA = f_vec(L,C,CA)
-#
-# print vec_L(L,C,CA)
-
 # In[]
-
 
 def temp(t):
     """ Temperature function
@@ -160,7 +153,6 @@ def temp(t):
 
     return T
 
-
 # In[]:
 
 L_record = []
@@ -182,6 +174,7 @@ for ti in range(1, N):
     L = L_new
     CC = CC_new
     CA = CA_new
+    CA[CA < 0] = 0
 
     L_record.append(L)
     CC_record.append(CC)
@@ -202,9 +195,7 @@ CA_record = numpy.array(CA_record)
 
 plot.plot(t_grid, L_record[:, 0])
 # plot.plot(t_grid, CC_record[:,0])
-# plot.plot(t_grid, CA_record[:,0])
-
-plot.show()
+plot.plot(t_grid, CA_record[:, 0])
 
 # In[]:
 
