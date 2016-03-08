@@ -91,42 +91,32 @@ def f_vec(C, TC):
 
     if L[0] >= .25:
 
-        dLdt = lambda L, CC, CA, TC: multiply(dt, multiply((36.2 * TC ** 0.5 * exp(-4807.69 / TC)), L))
-        dCCdt = lambda L, CC, CA, TC: multiply(dt, multiply(multiply(2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC), L),
-                                                            power(CA, 0.11)))
-        dCAdt = lambda L, CC, CA, TC: multiply(dt, multiply(SF,
-                                                            add((-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L,
-                                                                1.81e-2 * 2.53 * 36.2 * T ** 0.5 * exp(
-                                                                    -4807.69 / TC) * L * power(CA, 0.11))))
+        dLdt = lambda L, CC, CA, TC: dt * (36.2 * TC ** 0.5 * exp(-4807.69 / TC)) * L
+        dCCdt = lambda L, CC, CA, TC: dt * 2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11)
+        dCAdt = lambda L, CC, CA, TC: dt * SF * (
+        (-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L + 1.81e-2 * 2.53 *
+        36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11))
 
     elif L[0] >= .025:
 
-        dLdt = lambda L, CC, CA, TC: multiply(dt, add(multiply(multiply(exp(35.19 - 17200 / TC), CA), L),
-                                                      multiply(multiply((exp(29.23 - 14400 / TC)), power(CA, 0.5)),
-                                                               power(CS, 0.4))))
-        dCCdt = lambda L, CC, CA, TC: multiply(dt,
-                                               multiply(0.47, add(multiply(multiply(exp(35.19 - 17200 / TC), CA), L),
-                                                                  multiply(multiply((exp(29.23 - 14400 / TC)),
-                                                                                    power(CA, 0.5)),
-                                                                           power(CS, 0.4)))))
-        dCAdt = lambda L, CC, CA, TC: multiply(dt, multiply(SF, add(-4.78e-3 * (
-            (numpy.exp(35.19 - 17200 / TC)) * CA * L + (numpy.exp(29.23 - 14400 / TC)) * (CA ** 0.5) * (CS ** 0.4)),
-                                                                    1.81e-2 * 0.47 * (
-                                                                        (numpy.exp(35.19 - 17200 / TC)) * CA * L + (
-                                                                            numpy.exp(29.23 - 14400 / TC)) * (
-                                                                            CA ** 0.5) * (
-                                                                            CS ** 0.4)))))
+        dLdt = lambda L, CC, CA, TC: dt * (
+        exp(35.19 - 17200 / TC) * CA * L + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))
+        dCCdt = lambda L, CC, CA, TC: dt * (
+        0.47, exp(35.19 - 17200 / TC) * CA * L + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))
+        dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (exp(35.19 - 17200 / TC) * CA * L +
+                                                             exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))
+                                                 + 1.81e-2 * 0.47 * (exp(35.19 - 17200 / TC) * CA * L + (
+        exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))))
 
     else:
 
-        dLdt = lambda L, CC, CA, TC: multiply(dt, multiply(multiply((exp(19.64 - 10804 / TC)), L), power(CA, 0.7)))
-        dCCdt = lambda L, CC, CA, TC: multiply(dt, multiply(2.19, multiply(multiply((exp(19.64 - 10804 / TC)), L),
-                                                                           power(CA, 0.7))))
-        dCAdt = lambda L, CC, CA, TC: multiply(dt, multiply(SF, add(
-            -4.78e-3 * (numpy.exp(19.64 - 10804 / TC)) * (CA ** 0.7) * L,
-            1.81e-2 * 2.19 * (numpy.exp(19.64 - 10804 / TC)) * (CA ** 0.7) * L)))
+        dLdt = lambda L, CC, CA, TC: dt * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
+        dCCdt = lambda L, CC, CA, TC: dt * 2.19 * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
+        dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (
+        exp(19.64 - 10804 / TC) * (CA ** 0.7) * L + 1.81e-2 * 2.19 * exp(19.64 - 10804 / TC) * (CA ** 0.7) * L))
 
     return dLdt, dCCdt, dCAdt
+
 
 # In[]
 
@@ -152,6 +142,7 @@ def temp(t):
         T = To + th * m
 
     return T
+
 
 # In[]:
 
