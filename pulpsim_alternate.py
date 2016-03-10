@@ -45,7 +45,7 @@ sigma = float(D * dt) / float((2. * dx * dx))
 
 L = numpy.array([0.27 for i in range(0, J)])
 CC = numpy.array([0.776 for i in range(0, J)])
-CA = numpy.array([8] + [0 for i in range(1, J)])
+CA = numpy.array([1.5625] + [0 for i in range(1, J)])
 C = numpy.array([L, CC, CA])
 # Let us plot our initial condition for confirmation:
 
@@ -80,7 +80,7 @@ B_CA = numpy.diagflat([sigma for i in range(J - 1)], -1) + numpy.diagflat(
 
 # In[21]:
 
-CS = 8
+CS = 1.5625
 SF = 1
 
 
@@ -94,26 +94,26 @@ def f_vec(C, TC):
         dLdt = lambda L, CC, CA, TC: dt * (36.2 * TC ** 0.5 * exp(-4807.69 / TC)) * L
         dCCdt = lambda L, CC, CA, TC: dt * 2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11)
         dCAdt = lambda L, CC, CA, TC: dt * SF * (
-        (-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L + 1.81e-2 * 2.53 *
-        36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11))
+            (-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L + 1.81e-2 * 2.53 *
+            36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11))
 
     elif L[0] >= .025:
 
         dLdt = lambda L, CC, CA, TC: dt * (
-        exp(35.19 - 17200 / TC) * CA * L + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))
+            exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))) * L
         dCCdt = lambda L, CC, CA, TC: dt * (
-        0.47, exp(35.19 - 17200 / TC) * CA * L + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))
+            0.47(exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))) * L
         dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (exp(35.19 - 17200 / TC) * CA * L +
-                                                             exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))
-                                                 + 1.81e-2 * 0.47 * (exp(35.19 - 17200 / TC) * CA * L + (
-        exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))))
+                                                             exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)*L)
+                                                 + 1.81e-2 * 0.47 * (exp(35.19 - 17200 / TC) * CA* L + (
+            exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)*L)))
 
     else:
 
         dLdt = lambda L, CC, CA, TC: dt * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
         dCCdt = lambda L, CC, CA, TC: dt * 2.19 * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
         dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (
-        exp(19.64 - 10804 / TC) * (CA ** 0.7) * L + 1.81e-2 * 2.19 * exp(19.64 - 10804 / TC) * (CA ** 0.7) * L))
+            exp(19.64 - 10804 / TC) * (CA ** 0.7) * L + 1.81e-2 * 2.19 * exp(19.64 - 10804 / TC) * (CA ** 0.7) * L))
 
     return dLdt, dCCdt, dCAdt
 
