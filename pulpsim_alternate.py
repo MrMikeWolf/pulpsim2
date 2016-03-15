@@ -2,6 +2,8 @@ from __future__ import division
 import numpy
 from numpy import multiply, add, power, exp
 from matplotlib import pyplot as plot
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 numpy.set_printoptions(precision=3)
 
@@ -27,6 +29,8 @@ T = 200
 N = 1000
 dt = float(T) / float(N - 1)
 t_grid = numpy.array([n * dt for n in range(N)])
+
+x_grid, t_grid = numpy.meshgrid(x_grid, t_grid)
 
 
 # ### Specify System Parameters and the Reaction Term
@@ -97,7 +101,7 @@ def f_vec(L, CC, CA, TC):
         dLdt = lambda L, CC, CA, TC: dt * (
             exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))) * L
         dCCdt = lambda L, CC, CA, TC: dt * (
-            0.47*(exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))) * L
+            0.47 * (exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))) * L
         dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (exp(35.19 - 17200 / TC) * CA * L +
                                                              exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4) * L)
                                                  + 1.81e-2 * 0.47 * (exp(35.19 - 17200 / TC) * CA * L + (
@@ -155,7 +159,7 @@ CA_record.append(CA)
 for ti in range(1, N):
     TC = temp(ti)
 
-    vec_L, vec_CC, vec_CA = f_vec(L,CC,CA, TC)
+    vec_L, vec_CC, vec_CA = f_vec(L, CC, CA, TC)
 
     sigma = sigma_D(TC)
     A_CA = ACA(sigma)
@@ -165,7 +169,7 @@ for ti in range(1, N):
     CC_new = numpy.linalg.solve(A_C, B_C.dot(CC) - vec_CC(L, CC, CA, TC))
     CA_new = numpy.linalg.solve(A_CA, B_CA.dot(CA) - vec_CA(L, CC, CA, TC))
 
-    val = (dt/dx) * SF2 * (CA[1] - CA[0])
+    val = (dt / dx) * SF2 * (CA[1] - CA[0])
     C_bulk += val
     CA_bulk_record.append(C_bulk)
 
@@ -194,9 +198,9 @@ L_record = numpy.array(L_record)
 CC_record = numpy.array(CC_record)
 CA_record = numpy.array(CA_record)
 
-plot.plot(t_grid, L_record[:, 0])
+plot.plot(t_grid[:, 0], L_record[:, 0])
 # plot.plot(t_grid, CC_record[:,0])
-plot.plot(t_grid, CA_record[:, 0])
+plot.plot(t_grid[:, 0], CA_record[:, 0])
 
 # In[]:
 
@@ -204,4 +208,9 @@ fig, ax = plot.subplots()
 plot.xlabel('x')
 plot.ylabel('t')
 heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=0.5)
+
+fig2 = plot.figure()
+ax2 = fig2.gca(projection='3d')
+surface = ax2.plot_surface(t_grid, x_grid, CA_record, rstride = 1, cstride = 1, cmap=cm.coolwarm, linewidth= 0, antialiased = False)
+
 plot.show()
