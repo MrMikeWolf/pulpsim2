@@ -21,7 +21,7 @@ x_grid = numpy.array([j * dx for j in range(J)])
 # Equally, we define `N = 1000` equally spaced grid points on our time domain of length `T = 200` thus dividing our
 # time domain into `N-1` intervals of length `dt`.
 
-# In[2]:
+# In[]:
 
 T = 200
 N = 1000
@@ -33,7 +33,7 @@ t_grid = numpy.array([n * dt for n in range(N)])
 
 # State initial starting conditions
 
-# In[3]:
+# In[]:
 
 def sigma_D(T):
     D = 1.5e-2 * (T ** 0.5) * exp(-4870 / 1.9872 / T)
@@ -42,7 +42,7 @@ def sigma_D(T):
 
 # Specify the Initial Concentrations
 
-# In[4]:
+# In[]:
 
 
 L = numpy.array([0.27 for i in range(0, J)])
@@ -50,14 +50,6 @@ CC = numpy.array([0.776 for i in range(0, J)])
 CA = numpy.array([0.5] + [0 for i in range(1, J)])
 C = numpy.array([L, CC, CA])
 # Let us plot our initial condition for confirmation:
-
-# In[5]:
-
-# plot.xlabel('x')
-# plot.ylabel('concentration')
-# plot.plot(x_grid, L)
-# plot.plot(x_grid, C)
-# plot.plot(x_grid, CA)
 
 # Create Matrices
 
@@ -85,14 +77,14 @@ def BCA(sigma):
 
 # Solve the System Iteratively
 
-# In[21]:
+# In[]:
 
 CS = 0.5
 SF = 1
 
 
 def f_vec(L, CC, CA, TC):
-    if L[0] >= .22:
+    if sum(L) >= 22:
 
         dLdt = lambda L, CC, CA, TC: dt * (36.2 * TC ** 0.5 * exp(-4807.69 / TC)) * L
         dCCdt = lambda L, CC, CA, TC: dt * 2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11)
@@ -100,7 +92,7 @@ def f_vec(L, CC, CA, TC):
             (-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L + 1.81e-2 * 2.53 *
             36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11))
 
-    elif L[0] >= .025:
+    elif sum(L) >= 2.5:
 
         dLdt = lambda L, CC, CA, TC: dt * (
             exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))) * L
@@ -149,9 +141,13 @@ def temp(t):
 
 # In[]:
 
+C_bulk = 0.5
+SF2 = 0.001
+
 L_record = []
 CC_record = []
 CA_record = []
+CA_bulk_record = []
 
 L_record.append(L)
 CC_record.append(CC)
@@ -169,9 +165,16 @@ for ti in range(1, N):
     CC_new = numpy.linalg.solve(A_C, B_C.dot(CC) - vec_CC(L, CC, CA, TC))
     CA_new = numpy.linalg.solve(A_CA, B_CA.dot(CA) - vec_CA(L, CC, CA, TC))
 
+    val = (dt/dx) * SF2 * (CA[1] - CA[0])
+    C_bulk += val
+    CA_bulk_record.append(C_bulk)
+
     L = L_new
     CC = CC_new
     CA = CA_new
+
+    # The liquor penetration rate is infinite (CAi bulk = CAi of first compartment)
+    CA_new[0] = C_bulk
     CA[CA < 0] = 0
 
     L_record.append(L)
@@ -200,5 +203,5 @@ plot.plot(t_grid, CA_record[:, 0])
 fig, ax = plot.subplots()
 plot.xlabel('x')
 plot.ylabel('t')
-heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=1.5)
+heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=0.5)
 plot.show()
