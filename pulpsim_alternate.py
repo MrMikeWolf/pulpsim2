@@ -25,19 +25,31 @@ x_grid = numpy.array([j * dx for j in range(J)])
 
 # In[]:
 
-T = 200
+T = 280
 N = 1000
 dt = float(T) / float(N - 1)
 t_grid = numpy.array([n * dt for n in range(N)])
 
 x_grid, t_grid = numpy.meshgrid(x_grid, t_grid)
 
-
 # ### Specify System Parameters and the Reaction Term
 
 # State initial starting conditions
 
 # In[]:
+
+MM_NaOH = 23 + 16 + 1
+MM_Na2S = 23 * 2 + 32
+MM_Na2O = 23 * 2 + 16
+
+
+def COH(AA, S):
+    return AA * (2 * MM_NaOH / MM_Na2O) * (1 - S)
+
+
+def C_S(AA, S):
+    return AA * (2 * MM_NaOH / MM_Na2O) * S
+
 
 def sigma_D(T):
     D = 1.5e-2 * (T ** 0.5) * exp(-4870 / 1.9872 / T)
@@ -48,11 +60,15 @@ def sigma_D(T):
 
 # In[]:
 
+AA = 148.5  # g Na2O/L
+Sulf = 0.32  # Sulfdity(%) = Na2S/(NaOH+Na2S)
+
+CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
+OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
 
 L = numpy.array([0.27 for i in range(0, J)])
 CC = numpy.array([0.776 for i in range(0, J)])
-CA = numpy.array([0.5] + [0 for i in range(1, J)])
-C = numpy.array([L, CC, CA])
+CA = numpy.array([OH] + [0 for i in range(1, J)])
 # Let us plot our initial condition for confirmation:
 
 # Create Matrices
@@ -83,9 +99,7 @@ def BCA(sigma):
 
 # In[]:
 
-CS = 0.5
 SF = 1
-
 
 def f_vec(L, CC, CA, TC):
     if sum(L) >= 22:
@@ -124,14 +138,14 @@ def temp(t):
     """
 
     # Heating time in minutes
-    th = 120
+    th = 45
     # Starting temperature
-    To = 273 + 80
+    To = 273 + 25
 
     # Gradient at which heat changes degC/min
     # The gradient is specified such that a temp 
     # of 170 degC is reached at 'th'
-    m = ((170 + 273) - To) / 120
+    m = ((25 + 90 + 273) - To) / 120
 
     if t <= th:
         # Heating time
@@ -145,7 +159,7 @@ def temp(t):
 
 # In[]:
 
-C_bulk = 0.5
+C_bulk = OH
 SF2 = 0.001
 
 L_record = []
@@ -208,9 +222,5 @@ fig, ax = plot.subplots()
 plot.xlabel('x')
 plot.ylabel('t')
 heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=0.5)
-
-fig2 = plot.figure()
-ax2 = fig2.gca(projection='3d')
-surface = ax2.plot_surface(t_grid, x_grid, CA_record, rstride = 1, cstride = 1, cmap=cm.coolwarm, linewidth= 0, antialiased = False)
 
 plot.show()
