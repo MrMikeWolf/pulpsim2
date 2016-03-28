@@ -4,6 +4,8 @@ from numpy import exp, sum, average
 import os
 import ConfigParser
 import pandas
+from matplotlib.backends.backend_pdf import PdfPages
+import matplotlib.pyplot as plot
 
 numpy.set_printoptions(precision=3)
 
@@ -103,6 +105,8 @@ count = 0
 K_average = []
 T_list = []
 
+# Use config file to set path to the data file directory
+
 config = ConfigParser.ConfigParser()
 configfile = 'config.cfg'
 
@@ -116,8 +120,12 @@ else:
 datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
-
+# Create object from which the data can be read from
 data = pandas.read_excel(Data_file, sheetname = "PULPING" ,skiprows = 4, skip_footer = 4)
+
+# Create pdf document to save figures to
+Conc_plot = PdfPages('Lignin.pdf')
+
 for index, row in data.iterrows():
 
     AA = row['[AA]        g/L Na2O']
@@ -213,6 +221,13 @@ for index, row in data.iterrows():
         CA_record.append(CA)
 
     K_average.append(average(K[-1]))
+    plot.figure()
+    plot.title('Final heating temp. = {} K'.format(tf))
+    plot.xlabel('time [min]')
+    plot.ylabel('Lignin [% on wood]')
+    plot.plot(t_grid, sum(L_record, axis= 1))
+    Conc_plot.savefig()
 
+Conc_plot.close()
 data['Kappa lit.'] = K_average
-data.to_excel('comparison.xlsx')
+data.to_excel('Kappa_comparison.xlsx')
