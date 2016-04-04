@@ -48,11 +48,32 @@ def sigma_D(T):
 
 # In[]:
 
+def initial(xi):    
+    xi /=100    
+    return numpy.array([xi for i in range(0,J)])
 
-L = numpy.array([0.27 for i in range(0, J)])
-CC = numpy.array([0.776 for i in range(0, J)])
-CA = numpy.array([0.5] + [0 for i in range(1, J)])
-C = numpy.array([L, CC, CA])
+L1 = initial(9)
+L2 = initial(19)
+L3 = initial(1.5)
+
+C1 = initial(2.4)
+C2 = initial(4.2)
+C3 = initial(36.9)
+
+G1 = initial(10.3)
+G2 = initial(3.4)
+G3 = initial(6.1)
+
+X1 = initial(0.9)
+X2 = initial(1.7)
+X3 = initial(4.6)
+
+L = numpy.array([L1,L2,L3])
+C = numpy.array([C1,C2,C3])
+G = numpy.array([G1,G2,G3])
+X = numpy.array([X1,X2,X3])
+CA = initial(0.1)
+
 # Let us plot our initial condition for confirmation:
 
 # Create Matrices
@@ -83,38 +104,57 @@ def BCA(sigma):
 
 # In[]:
 
-CS = 0.5
+CS = 0.05
 SF = 1
 
+def Lignin(A,Ea,a,b,L,CA,CS,T):
+    R = 8.314
+    return -A*exp(Ea/R*(1/443.15 - 1/T))*(CA**a)*(CS**b)*L
 
-def f_vec(L, CC, CA, TC):
-    if sum(L) >= 22:
+def Carbo(A,Ea,a,b,k2,C,CA,CS,T):
+    R = 8.314
+    return -A*exp(Ea/R*(1/443.15 - 1/T))*((CA**a)*(CS**b) + k2)*C
 
-        dLdt = lambda L, CC, CA, TC: dt * (36.2 * TC ** 0.5 * exp(-4807.69 / TC)) * L
-        dCCdt = lambda L, CC, CA, TC: dt * 2.53 * 36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11)
-        dCAdt = lambda L, CC, CA, TC: dt * SF * (
-            (-4.78e-3 * 36.2 * T ** 0.5 * exp(-4807.69 / TC)) * L + 1.81e-2 * 2.53 *
-            36.2 * T ** 0.5 * exp(-4807.69 / TC) * L * (CA ** 0.11))
 
-    elif sum(L) >= 2.5:
 
-        dLdt = lambda L, CC, CA, TC: dt * (
-            exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4))) * L
-        dCCdt = lambda L, CC, CA, TC: dt * (
-            0.47 * (exp(35.19 - 17200 / TC) * CA + (exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4)))) * L
-        dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (exp(35.19 - 17200 / TC) * CA * L +
-                                                             exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4) * L)
-                                                 + 1.81e-2 * 0.47 * (exp(35.19 - 17200 / TC) * CA * L + (
-            exp(29.23 - 14400 / TC) * (CA ** 0.5) * (CS ** 0.4) * L)))
 
-    else:
+def f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC):  
+    
+    # Lignin consumption
+    
+    dL1dt = Lignin(0.1,50000,0,0.06,L1,CA,CS,TC)
+    dL2dt = Lignin(0.1,127000,0.48,0.39,L2,CA,CS,TC)
+    dL3dt = Lignin(0.0047,127000,0.2,0,L3,CA,CS,TC)
+    dLdt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: dt *(dL1dt + dL2dt + dL3dt)
 
-        dLdt = lambda L, CC, CA, TC: dt * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
-        dCCdt = lambda L, CC, CA, TC: dt * 2.19 * (exp(19.64 - 10804 / TC)) * L * (CA ** 0.7)
-        dCAdt = lambda L, CC, CA, TC: dt * SF * (-4.78e-3 * (
-            exp(19.64 - 10804 / TC) * (CA ** 0.7) * L + 1.81e-2 * 2.19 * exp(19.64 - 10804 / TC) * (CA ** 0.7) * L))
+    # Carbohydrate consumption
+        # 1) Cellulose
 
-    return dLdt, dCCdt, dCAdt
+    dC1dt = Carbo(0.06,50000,0.1,0,0,C1,CA,CS,TC)
+    dC2dt = Carbo(0.054,144000,1,0,0.22,C2,CA,CS,TC)
+    dC3dt = Carbo(6.4e-4,144000,1,0,0.42,C3,CA,CS,TC)
+    
+    dCdt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: dt * (dC1dt + dC2dt + dC3dt)
+
+        # 2) Glucomannan
+
+    dG1dt = Carbo(0.06,50000,0.1,0,0,G1,CA,CS,TC)
+    dG2dt = Carbo(0.054,144000,1,0,0.22,G2,CA,CS,TC)
+    dG3dt = Carbo(6.4e-4,144000,1,0,0.42,G3,CA,CS,TC)
+    
+    dGdt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: dt * (dG1dt + dG2dt + dG3dt)
+
+        # 3) Xylan
+
+    dX1dt = Carbo(0.06,50000,0.1,0,0,X1,CA,CS,TC)
+    dX2dt = Carbo(0.054,144000,1,0,0.22,X2,CA,CS,TC)
+    dX3dt = Carbo(6.4e-4,144000,1,0,0.42,X3,CA,CS,TC)
+    
+    dXdt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: dt * (dX1dt + dX2dt + dX3dt)
+
+       
+
+    return dLdt, dCdt, dGdt, dXdt
 
 
 # In[]
@@ -149,41 +189,83 @@ C_bulk = 0.5
 SF2 = 0.001
 
 L_record = []
-CC_record = []
-CA_record = []
+C_record = []
+G_record = []
+X_record = []
+
 CA_bulk_record = []
 
 L_record.append(L)
-CC_record.append(CC)
-CA_record.append(CA)
+C_record.append(C)
+G_record.append(G)
+X_record.append(X)
+
 for ti in range(1, N):
     TC = temp(ti)
-
-    vec_L, vec_CC, vec_CA = f_vec(L, CC, CA, TC)
-
     sigma = sigma_D(TC)
     A_CA = ACA(sigma)
     B_CA = BCA(sigma)
 
-    L_new = numpy.linalg.solve(A_L, B_L.dot(L) - vec_L(L, CC, CA, TC))
-    CC_new = numpy.linalg.solve(A_C, B_C.dot(CC) - vec_CC(L, CC, CA, TC))
-    CA_new = numpy.linalg.solve(A_CA, B_CA.dot(CA) - vec_CA(L, CC, CA, TC))
+    L1,L2,L3 = L
+    C1,C2,C3 = C
+    G1,G2,G3 = G    
+    X1,X2,X3 = X
+
+    vec_L, vec_C, vec_G, vec_X = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
+#    vec_L2, vec_C2, vec_G2, vec_X2 = f_vec(L2, C2, G2, X2, CA, TC)
+#    vec_L3, vec_C3, vec_G3, vec_X3 = f_vec(L3, C3, G3, X3, CA, TC)
+
+
+    L_new = numpy.linalg.solve(A_L, B_L.dot(L1) - vec_L(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+#    L2_new = numpy.linalg.solve(A_L, B_L.dot(L2) - vec_L2(L2, C, G, X, CA, TC))
+#    L3_new = numpy.linalg.solve(A_L, B_L.dot(L3) - vec_L3(L3, C, G, X, CA, TC))
+    
+    
+    C_new = numpy.linalg.solve(A_C, B_C.dot(C1) - vec_C(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+#    C2_new = numpy.linalg.solve(A_L, B_L.dot(C2) - vec_C2(L, C2, G, X, CA, TC))
+#    C3_new = numpy.linalg.solve(A_L, B_L.dot(C3) - vec_C3(L, C3, G, X, CA, TC))
+    
+    
+    G_new = numpy.linalg.solve(A_C, B_C.dot(G1) - vec_G(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+#    G2_new = numpy.linalg.solve(A_C, B_C.dot(G2) - vec_G2(L, C, G2, X, CA, TC))   
+#    G3_new = numpy.linalg.solve(A_C, B_C.dot(G3) - vec_G3(L, C, G3, X, CA, TC))
+    
+    
+    X_new = numpy.linalg.solve(A_C, B_C.dot(X1) - vec_X(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+#    X2_new = numpy.linalg.solve(A_C, B_C.dot(X2) - vec_X2(L, C, G, X2, CA, TC))
+#    X3_new = numpy.linalg.solve(A_C, B_C.dot(X3) - vec_X3(L, C, G, X3, CA, TC))
 
     val = (dt / dx) * SF2 * (CA[1] - CA[0])
     C_bulk += val
     CA_bulk_record.append(C_bulk)
 
     L = L_new
-    CC = CC_new
-    CA = CA_new
+#    L2 = L2_new
+#    L3 = L3_new
+    
+    C = C_new
+#    C2 = C2_new
+#    C3 = C3_new
+
+    G = G_new
+#    G2 = G2_new
+#    G3 = G3_new
+    
+    X = X_new
+#    X2 = X2_new
+#    X3 = X3_new
 
     # The liquor penetration rate is infinite (CAi bulk = CAi of first compartment)
-    CA_new[0] = C_bulk
-    CA[CA < 0] = 0
 
+    L = numpy.array([L1,L2,L3])
+    C = numpy.array([C1,C2,C3])
+    G = numpy.array([G1,G2,G3])
+    X = numpy.array([X1,X2,X3])
+    
     L_record.append(L)
-    CC_record.append(CC)
-    CA_record.append(CA)
+    C_record.append(C)
+    G_record.append(G)
+    X_record.append(X)
 
 # ### Plot the Numerical Solution
 
@@ -195,22 +277,19 @@ plot.xlabel('t')
 plot.ylabel('concentration')
 
 L_record = numpy.array(L_record)
-CC_record = numpy.array(CC_record)
-CA_record = numpy.array(CA_record)
+C_record = numpy.array(C_record)
+G_record = numpy.array(G_record)
+X_record = numpy.array(X_record)
 
 plot.plot(t_grid[:, 0], L_record[:, 0])
 # plot.plot(t_grid, CC_record[:,0])
-plot.plot(t_grid[:, 0], CA_record[:, 0])
+#plot.plot(t_grid[:, 0], CA_record[:, 0])
 
 # In[]:
 
-fig, ax = plot.subplots()
-plot.xlabel('x')
-plot.ylabel('t')
-heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=0.5)
-
-fig2 = plot.figure()
-ax2 = fig2.gca(projection='3d')
-surface = ax2.plot_surface(t_grid, x_grid, CA_record, rstride = 1, cstride = 1, cmap=cm.coolwarm, linewidth= 0, antialiased = False)
+#fig, ax = plot.subplots()
+#plot.xlabel('x')
+#plot.ylabel('t')
+#heatmap = ax.pcolor(x_grid, t_grid, CA_record, vmin=0., vmax=0.5)
 
 plot.show()
