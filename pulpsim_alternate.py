@@ -88,7 +88,7 @@ def temp(t,th, tf):
     # Gradient at which heat changes degC/min
     # The gradient is specified such that a temp 
     # of 170 degC is reached at 'th'
-    m = (tf - To) / th
+    m = (tf - To )/ th
 
     if t <= th:
         # Heating time
@@ -184,14 +184,15 @@ for index, row in data.iterrows():
     CA_bulk_record = []
     K = []
 
-    count+=1
+    count += 1
     print(count)
 
     L_record.append(L)
     CC_record.append(CC)
     CA_record.append(CA)
     for ti in range(1, N):
-        TC = temp(ti, th, tf)
+        t = ti*(T/N)
+        TC = temp(t, th, tf)
 
         vec_L, vec_CC, vec_CA = f_vec(L, CC, CA, TC)
 
