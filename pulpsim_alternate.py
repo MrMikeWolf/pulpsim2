@@ -47,17 +47,28 @@ def initial(xi):
     xi /= 100
     return numpy.array([xi for i in range(0,J)])
 
+# Inside the wood exists lignin and carbohydrates (3 compounds)
+# Each compound is broken into 3 species of fast, medium and slow kinetics
+
+# 1) Lignin
+
 L1 = initial(9)
 L2 = initial(19)
 L3 = initial(1.5)
+
+# 2) Cellulose
 
 C1 = initial(2.4)
 C2 = initial(4.2)
 C3 = initial(36.9)
 
+# 3) Glocumannan
+
 G1 = initial(10.3)
 G2 = initial(3.4)
 G3 = initial(6.1)
+
+# 4) Xylan
 
 X1 = initial(0.9)
 X2 = initial(1.7)
@@ -204,6 +215,9 @@ X2_record.append(X2)
 X3_record.append(X3)
 
 L_record.append(L1+L2+L3)
+C_record.append(C1+C2+C3)
+G_record.append(G1+G2+G3)
+X_record.append(X1+X2+X3)
 
 for ti in range(1, N):
     TC = temp(ti)
