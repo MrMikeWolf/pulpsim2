@@ -121,7 +121,7 @@ datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
 # Create object from which the data can be read from
-data = pandas.read_excel(Data_file, sheetname = "PULPING" ,skiprows = 4, skip_footer = 4)
+data = pandas.read_excel(Data_file, sheetname = "PULPING" ,skiprows = 4)
 
 # Create pdf document to save figures to
 Conc_plot = PdfPages('Lignin.pdf')
@@ -132,7 +132,8 @@ for index, row in data.iterrows():
     Sulf = 0.3264
     tf = row['Tmax C'] + 273
     th = row['to Tmax min']
-    T = row['at Tmax min'] # cook time
+    T = row['total min'] # cook time
+    K_exp = row['Kappa number']
     T_list.append(T)
 
     N = 1000
@@ -190,6 +191,7 @@ for index, row in data.iterrows():
     L_record.append(L)
     CC_record.append(CC)
     CA_record.append(CA)
+    K.append(Kappa(L,CC))
     for ti in range(1, N):
         t = ti*(T/N)
         TC = temp(t, th, tf)
@@ -225,8 +227,10 @@ for index, row in data.iterrows():
     plot.figure()
     plot.title('Final heating temp. = {} K'.format(tf))
     plot.xlabel('time [min]')
-    plot.ylabel('Lignin [% on wood]')
-    plot.plot(t_grid, sum(L_record, axis= 1))
+    plot.ylabel('Kappa number')
+    plot.plot(t_grid, average(K, axis = 1))
+    if type(K_exp) == float:
+        plot.plot(T, K_exp, 'rx')
     Conc_plot.savefig()
 
 Conc_plot.close()
