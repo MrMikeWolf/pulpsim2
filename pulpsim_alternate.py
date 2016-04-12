@@ -220,6 +220,7 @@ G_record.append(G1+G2+G3)
 X_record.append(X1+X2+X3)
 
 for ti in range(1, N):
+    t = (T/N)*ti
     TC = temp(ti)
     sigma = sigma_D(TC)
     A_CA = ACA(sigma)
