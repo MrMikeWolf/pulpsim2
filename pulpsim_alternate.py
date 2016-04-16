@@ -1,9 +1,12 @@
 from __future__ import division
 import numpy
-from numpy import multiply, add, power, exp, sum, array
+from numpy import multiply, add, power, exp, sum, array, average
 from matplotlib import pyplot as plot
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
+import ConfigParser
+from matplotlib.backends.backend_pdf import PdfPages
+import os
+import pandas
+
 
 numpy.set_printoptions(precision=3)
 
@@ -20,50 +23,42 @@ J = 100
 dx = float(L) / float(J - 1)
 x_grid = numpy.array([j * dx for j in range(J)])
 
-# Equally, we define `N = 1000` equally spaced grid points on our time domain of length `T = 200` thus dividing our
-# time domain into `N-1` intervals of length `dt`.
-
-# In[]:
-
-T = 200
-N = 1000
-dt = float(T) / float(N - 1)
-t_grid = numpy.array([n * dt for n in range(N)])
-
 # ### Specify System Parameters and the Reaction Term
 
-# In[]:
 
 def sigma_D(T):
     D = 1.5e-2 * (T ** 0.5) * exp(-4870 / 1.9872 / T)
     return D * dt / (2 * dx * dx)
 
+# Carbohhdrates are the sum of Cellulose, Glucomannan and Xylan
+
+
+def carbo_sum(C, G ,X):
+
+    return C+G+X
+
+# Concentration calculations for NaOH and Na2S
+
+MM_NaOH = 23 + 16 + 1
+MM_Na2S = 23 * 2 + 32
+MM_Na2O = 23 * 2 + 16
+
+
+def COH(AA, S):
+    return AA * (2 * MM_NaOH / MM_Na2O) * (1 - S)
+
+
+def C_S(AA, S):
+    return AA * (2 * MM_NaOH / MM_Na2O) * S
 
 # Specify the Initial Concentrations
 
 # In[]:
 
+
 def initial(xi):
     xi /= 100
     return numpy.array([xi for i in range(0,J)])
-
-L1 = initial(9)
-L2 = initial(19)
-L3 = initial(1.5)
-
-C1 = initial(2.4)
-C2 = initial(4.2)
-C3 = initial(36.9)
-
-G1 = initial(10.3)
-G2 = initial(3.4)
-G3 = initial(6.1)
-
-X1 = initial(0.9)
-X2 = initial(1.7)
-X3 = initial(4.6)
-
-CA = initial(0.1)
 
 # Create Matrices
 
@@ -76,25 +71,29 @@ B_L = A_L
 A_C = numpy.identity(J)
 B_C = A_C
 
-
-def ACA(sigma):
-    return numpy.diagflat([-sigma for i in range(J - 1)], -1) + numpy.diagflat(
-        [1. + sigma] + [1. + 2. * sigma for i in range(J - 2)] + [1. + sigma]) + numpy.diagflat(
-        [-sigma for i in range(J - 1)], 1)
-
-
-def BCA(sigma):
-    return numpy.diagflat([sigma for i in range(J - 1)], -1) + numpy.diagflat(
-        [1. - sigma] + [1. - 2. * sigma for i in range(J - 2)] + [1. - sigma]) + numpy.diagflat(
-        [sigma for i in range(J - 1)], 1)
-
-
 # Solve the System Iteratively
 
 # In[]:
 
-CS = 0.05
-SF = 1
+
+config = ConfigParser.ConfigParser()
+configfile = 'config.cfg'
+
+if os.path.exists(configfile):
+    config.read('config.cfg')
+else:
+    message = ("Cannot find config file {0}. "
+               "Try copying sample_config.cfg to {0}.").format(configfile)
+    raise EnvironmentError(message)
+
+datadir = os.path.expanduser(config.get('paths', 'datadir'))
+Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
+
+# Create object from which the data can be read from
+data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=4)
+
+# Create pdf document to save figures to
+Conc_plot = PdfPages('Kappa.pdf')
 
 
 def Lignin(A, Ea, a, b, L, CA, CS, T):
@@ -135,7 +134,6 @@ def f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC):
     dX2dt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: Carbo(0.054,144000,1,0,0.22,X2,CA,CS,TC)
     dX3dt = lambda L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC: Carbo(6.4e-4,144000,1,0,0.42,X3,CA,CS,TC)
 
-
     return dL1dt, dL2dt, dL3dt, dC1dt, dC2dt, dC3dt, dG1dt, dG2dt, dG3dt, dX1dt, dX2dt, dX3dt
 
 
@@ -148,7 +146,7 @@ def temp(t):
     # Heating time in minutes
     th = 120
     # Starting temperature
-    To = 273 + 20
+    To = 273 + 2
 
     # Gradient at which heat changes degC/min
     # The gradient is specified such that a temp 
@@ -169,117 +167,180 @@ def temp(t):
 
 C_bulk = 0.5
 SF2 = 0.001
+cnt = 0
 
-L_record = []
-C_record = []
-G_record = []
-X_record = []
+for index, row in data.iterrows():
+    cnt+=1
+    print cnt
 
-L1_record = []
-L2_record = []
-L3_record = []
-C1_record = []
-C2_record = []
-C3_record = []
-G1_record = []
-G2_record = []
-G3_record = []
-X1_record = []
-X2_record = []
-X3_record = []
+    AA = row['[AA]        g/L Na2O']
+    Sulf = 0.3264
+    tf = row['Tmax C'] + 273
+    th = row['to Tmax min']
+    T = row['total min'] # cook time
+    K_exp = row['Kappa number']
 
-CA_bulk_record = []
+    CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
+    OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
 
-L1_record.append(L1)
-L2_record.append(L2)
-L3_record.append(L3)
-C1_record.append(C1)
-C2_record.append(C2)
-C3_record.append(C3)
-G1_record.append(G1)
-G2_record.append(G2)
-G3_record.append(G3)
-X1_record.append(X1)
-X2_record.append(X2)
-X3_record.append(X3)
+    N = 1000
+    dt = float(T) / float(N - 1)
+    t_grid = numpy.array([n * dt for n in range(N)])
 
-L_record.append(L1+L2+L3)
+    L1 = initial(9)
+    L2 = initial(19)
+    L3 = initial(1.5)
 
-for ti in range(1, N):
-    TC = temp(ti)
-    sigma = sigma_D(TC)
-    A_CA = ACA(sigma)
-    B_CA = BCA(sigma)
+    C1 = initial(2.4)
+    C2 = initial(4.2)
+    C3 = initial(36.9)
 
-    vec_L1,vec_L2,vec_L3,vec_C1,vec_C2,vec_C3,vec_G1,vec_G2,vec_G3,vec_X1,vec_X2,vec_X3 = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
+    G1 = initial(10.3)
+    G2 = initial(3.4)
+    G3 = initial(6.1)
 
-    L_new = numpy.linalg.solve(A_L, B_L.dot(L1) - vec_L1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    L2_new = numpy.linalg.solve(A_L, B_L.dot(L2) - vec_L2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    L3_new = numpy.linalg.solve(A_L, B_L.dot(L3) - vec_L3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+    X1 = initial(0.9)
+    X2 = initial(1.7)
+    X3 = initial(4.6)
 
-    C_new = numpy.linalg.solve(A_C, B_C.dot(C1) - vec_C1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    C2_new = numpy.linalg.solve(A_L, B_L.dot(C2) - vec_C2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    C3_new = numpy.linalg.solve(A_L, B_L.dot(C3) - vec_C3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+    CA = initial(OH)
 
-    G_new = numpy.linalg.solve(A_C, B_C.dot(G1) - vec_G1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    G2_new = numpy.linalg.solve(A_C, B_C.dot(G2) - vec_G2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    G3_new = numpy.linalg.solve(A_C, B_C.dot(G3) - vec_G3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+    L_record = []
+    C_record = []
+    G_record = []
+    X_record = []
 
-    X_new = numpy.linalg.solve(A_C, B_C.dot(X1) - vec_X1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    X2_new = numpy.linalg.solve(A_C, B_C.dot(X2) - vec_X2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
-    X3_new = numpy.linalg.solve(A_C, B_C.dot(X3) - vec_X3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+    L1_record = []
+    L2_record = []
+    L3_record = []
+    C1_record = []
+    C2_record = []
+    C3_record = []
+    G1_record = []
+    G2_record = []
+    G3_record = []
+    X1_record = []
+    X2_record = []
+    X3_record = []
 
-    val = (dt / dx) * SF2 * (CA[1] - CA[0])
-    C_bulk += val
-    CA_bulk_record.append(C_bulk)
-
-    L1 = L_new
-    L2 = L2_new
-    L3 = L3_new
-
-    C1 = C_new
-    C2 = C2_new
-    C3 = C3_new
-
-    G1 = G_new
-    G2 = G2_new
-    G3 = G3_new
-
-    X1 = X_new
-    X2 = X2_new
-    X3 = X3_new
+    CA_bulk_record = []
 
     L1_record.append(L1)
     L2_record.append(L2)
     L3_record.append(L3)
-    L_record.append(L1+L2+L3)
-    
     C1_record.append(C1)
     C2_record.append(C2)
     C3_record.append(C3)
-    C_record.append(C1+C2+C3)    
-    
     G1_record.append(G1)
     G2_record.append(G2)
     G3_record.append(G3)
-    G_record.append(G1+G2+G3)
-    
     X1_record.append(X1)
     X2_record.append(X2)
     X3_record.append(X3)
+
+    L_record.append(L1+L2+L3)
+    C_record.append(C1+C2+C3)
+    G_record.append(G1+G2+G3)
     X_record.append(X1+X2+X3)
 
-# ### Plot the Numerical Solution
+    Carbo_record = [carbo_sum(C_record, G_record, X_record)]
+    Kappa_record = []
 
-# Let us take a look at the numerical solution we attain after `N` time steps.
 
-# In[]:
+    def Kappa(L, CH):
+        return 500*(L/(L+CH))+2
+    L = L1+L2+L3
+    Carb = C1+C2+C3+G1+G2+G3+X1+X2+X3
+    Kappa_record.append(Kappa(L, Carb))
 
-plot.xlabel('t')
-plot.ylabel('concentration')
+    for ti in range(1, N):
+        t = ti*(T/N)
+        TC = temp(t)
+        sigma = sigma_D(TC)
 
-plot.plot(t_grid, sum(L_record, axis= 1))
-# plot.plot(t_grid, C_record)
-#plot.plot(t_grid, CA_record[:, 0])
+        vec_L1,vec_L2,vec_L3,vec_C1,vec_C2,vec_C3,vec_G1,vec_G2,vec_G3,vec_X1,vec_X2,vec_X3 = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
 
-plot.show()
+        L_new = numpy.linalg.solve(A_L, B_L.dot(L1) - vec_L1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        L2_new = numpy.linalg.solve(A_L, B_L.dot(L2) - vec_L2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        L3_new = numpy.linalg.solve(A_L, B_L.dot(L3) - vec_L3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+
+        C_new = numpy.linalg.solve(A_C, B_C.dot(C1) - vec_C1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        C2_new = numpy.linalg.solve(A_L, B_C.dot(C2) - vec_C2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        C3_new = numpy.linalg.solve(A_L, B_C.dot(C3) - vec_C3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+
+        G_new = numpy.linalg.solve(A_C, B_C.dot(G1) - vec_G1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        G2_new = numpy.linalg.solve(A_C, B_C.dot(G2) - vec_G2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        G3_new = numpy.linalg.solve(A_C, B_C.dot(G3) - vec_G3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+
+        X_new = numpy.linalg.solve(A_C, B_C.dot(X1) - vec_X1(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        X2_new = numpy.linalg.solve(A_C, B_C.dot(X2) - vec_X2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+        X3_new = numpy.linalg.solve(A_C, B_C.dot(X3) - vec_X3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
+
+        val = (dt / dx) * SF2 * (CA[1] - CA[0])
+        C_bulk += val
+        CA_bulk_record.append(C_bulk)
+
+        L1 = L_new
+        L2 = L2_new
+        L3 = L3_new
+        L = L1+L2+L3
+
+        C1 = C_new
+        C2 = C2_new
+        C3 = C3_new
+        C = C1+C2+C3
+
+        G1 = G_new
+        G2 = G2_new
+        G3 = G3_new
+        G = G1+G2+G3
+
+        X1 = X_new
+        X2 = X2_new
+        X3 = X3_new
+        X = X1+X2+X3
+
+        L1_record.append(L1)
+        L2_record.append(L2)
+        L3_record.append(L3)
+        L_record.append(L)
+
+        C1_record.append(C1)
+        C2_record.append(C2)
+        C3_record.append(C3)
+        C_record.append(C)
+
+        G1_record.append(G1)
+        G2_record.append(G2)
+        G3_record.append(G3)
+        G_record.append(G)
+
+        X1_record.append(X1)
+        X2_record.append(X2)
+        X3_record.append(X3)
+        X_record.append(X)
+
+        Carbo_record.append(carbo_sum(C, G, X))
+        Kappa_record.append(Kappa(L, C))
+
+    Kappa_average = average(Kappa_record, axis = 1)
+    # ### Plot the Numerical Solution
+
+    # Let us take a look at the numerical solution we attain after `N` time steps.
+
+    # In[]:
+
+    print Kappa_average[-1]
+
+    plot.figure()
+    plot.xlabel('time [min]')
+    plot.ylabel('Kappa number')
+    plot.plot(t_grid, Kappa_average)
+
+    if type(K_exp) == float:
+        plot.plot(T, K_exp, 'rx')
+
+    Conc_plot.savefig()
+
+
+Conc_plot.close()
