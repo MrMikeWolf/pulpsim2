@@ -96,11 +96,10 @@ datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
 # Create object from which the data can be read from
-data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=20)
+data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=4)
 
 # Create pdf document to save figures to
-Kappa_Lig_plot = PdfPages('Kappa_Lignin.pdf')
-Carbo_plot = PdfPages('Carbohydrates.pdf')
+Kappa_Lig_Carbo_plot = PdfPages('Kappa_Lignin_Carbo.pdf')
 
 
 def Lignin(A, Ea, a, b, L, CA, CS, T):
@@ -178,7 +177,7 @@ cnt = 0
 
 for index, row in data.iterrows():
     cnt+=1
-    print(cnt)
+    print('Execution count: {}'.format(cnt))
 
     AA = row['[AA]        g/L Na2O']
     Sulf = 0.3264
@@ -186,6 +185,7 @@ for index, row in data.iterrows():
     th = row['to Tmax min']
     T = row['total min'] # cook time
     K_exp = row['Kappa number']
+    Run = row['COOK']
 
     CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
     OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
@@ -250,7 +250,7 @@ for index, row in data.iterrows():
     G_record.append(G1+G2+G3)
     X_record.append(X1+X2+X3)
 
-    Carbo_record = [carbo_sum(C_record, G_record, X_record)]
+    Carbo_record = [carbo_sum(C1+C2+C3, G1+G2+G3, X1+X2+X3)]
     Kappa_record = []
 
 
@@ -337,18 +337,19 @@ for index, row in data.iterrows():
 
     # In[]:
 
-    print(Kappa_average[-1])
+    print('Average Kappa number: {}'.format(Kappa_average[-1]))
 
-    plot.figure()
-    fig, ax1 = plot.subplots()
+    fig = plot.figure()
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax1.set_title('Cook number: {}'.format(Run))
     ax2 = ax1.twinx()
 
     # ax1.plot()
     ax1.set_xlabel('time [min]')
-    ax1.set_ylabel('Kappa number')
-    ax2.set_ylabel('Lignin content')
-    l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='kapa')
-    l2 = ax2.plot(t_grid, average(L_record, axis=1), 'b-', label='Lr')
+    ax1.set_ylabel('$\kappa$')
+    ax2.set_ylabel('Lignin [% mass]')
+    l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='$\kappa$')
+    l2 = ax2.plot(t_grid, sum(L_record, axis=1), 'b-', label='$L_{tot}$')
 
     if type(K_exp) == float:
         ax1.plot(T, K_exp, 'rx')
@@ -356,7 +357,14 @@ for index, row in data.iterrows():
     lines = l1 + l2
     ax1.legend(lines, [l.get_label() for l in lines])
 
-    Kappa_Lig_plot.savefig()
+    ax3 = fig.add_subplot(2,1,2)
+    ax3.set_xlabel('time [min]')
+    ax3.set_ylabel('Carbohydrates [% mass]')
+    l3 = ax3.plot(t_grid, sum(Carbo_record, axis=1), 'g-', label='$C_{tot}$')
+    ax3.legend()
+    fig.subplots_adjust(hspace = 0.4)
+
+    Kappa_Lig_Carbo_plot.savefig()
     plot.close()
 
-Kappa_Lig_plot.close()
+Kappa_Lig_Carbo_plot.close()
