@@ -339,24 +339,24 @@ for index, row in data.iterrows():
 
     print(Kappa_average[-1])
 
+    plot.figure()
     fig, ax1 = plot.subplots()
     ax2 = ax1.twinx()
 
-    # plot.figure()
     # ax1.plot()
     ax1.set_xlabel('time [min]')
     ax1.set_ylabel('Kappa number')
     ax2.set_ylabel('Lignin content')
-    ax1.plot(t_grid, Kappa_average, 'r-.', label='kapa')
-    ax2.plot(t_grid, average(L_record, axis=1), 'b-', label='Lr')
+    l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='kapa')
+    l2 = ax2.plot(t_grid, average(L_record, axis=1), 'b-', label='Lr')
 
     if type(K_exp) == float:
         ax1.plot(T, K_exp, 'rx')
 
-    # plot.figlegend(labels=('$\kappa$', '$\kappa_{exp}$', '$L_{tot}$'))
-    # ax1.legend(('$\kappa$', '$\kappa_{exp}$'), loc=4)
-    # ax2.legend('$L_{tot}$', loc=3)
+    lines = l1 + l2
+    ax1.legend(lines, [l.get_label() for l in lines])
 
     Kappa_Lig_plot.savefig()
+    plot.close()
 
 Kappa_Lig_plot.close()
