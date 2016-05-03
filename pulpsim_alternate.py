@@ -1,8 +1,14 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy
 from numpy import multiply, add, power, exp, sum, array, average
 from matplotlib import pyplot as plot
-import ConfigParser
+
+# Python 2.7 compatibility
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
+
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import pandas
@@ -76,7 +82,7 @@ B_C = A_C
 # In[]:
 
 
-config = ConfigParser.ConfigParser()
+config = ConfigParser()
 configfile = 'config.cfg'
 
 if os.path.exists(configfile):
@@ -171,7 +177,7 @@ cnt = 0
 
 for index, row in data.iterrows():
     cnt+=1
-    print cnt
+    print(cnt)
 
     AA = row['[AA]        g/L Na2O']
     Sulf = 0.3264
@@ -330,7 +336,7 @@ for index, row in data.iterrows():
 
     # In[]:
 
-    print Kappa_average[-1]
+    print(Kappa_average[-1])
 
     plot.figure()
     plot.xlabel('time [min]')
