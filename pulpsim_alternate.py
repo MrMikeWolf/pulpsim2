@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import numpy
-from numpy import multiply, add, power, exp, sum, array, average
+from numpy import multiply, add, power, exp, sum, array, average, shape
 from matplotlib import pyplot as plot
 
 # Python 2.7 compatibility
@@ -96,10 +96,11 @@ datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
 # Create object from which the data can be read from
-data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=4)
+data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=20)
 
 # Create pdf document to save figures to
-Conc_plot = PdfPages('Kappa.pdf')
+Kappa_Lig_plot = PdfPages('Kappa_Lignin.pdf')
+Carbo_plot = PdfPages('Carbohydrates.pdf')
 
 
 def Lignin(A, Ea, a, b, L, CA, CS, T):
@@ -338,15 +339,24 @@ for index, row in data.iterrows():
 
     print(Kappa_average[-1])
 
-    plot.figure()
-    plot.xlabel('time [min]')
-    plot.ylabel('Kappa number')
-    plot.plot(t_grid, Kappa_average)
+    fig, ax1 = plot.subplots()
+    ax2 = ax1.twinx()
+
+    # plot.figure()
+    # ax1.plot()
+    ax1.set_xlabel('time [min]')
+    ax1.set_ylabel('Kappa number')
+    ax2.set_ylabel('Lignin content')
+    ax1.plot(t_grid, Kappa_average, 'r-.', label='kapa')
+    ax2.plot(t_grid, average(L_record, axis=1), 'b-', label='Lr')
 
     if type(K_exp) == float:
-        plot.plot(T, K_exp, 'rx')
+        ax1.plot(T, K_exp, 'rx')
 
-    Conc_plot.savefig()
+    # plot.figlegend(labels=('$\kappa$', '$\kappa_{exp}$', '$L_{tot}$'))
+    # ax1.legend(('$\kappa$', '$\kappa_{exp}$'), loc=4)
+    # ax2.legend('$L_{tot}$', loc=3)
 
+    Kappa_Lig_plot.savefig()
 
-Conc_plot.close()
+Kappa_Lig_plot.close()
