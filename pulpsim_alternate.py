@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import numpy
-from numpy import multiply, add, power, exp, sum, array, average, shape
+from numpy import exp, sum, average, ones
 from matplotlib import pyplot as plot
 
 # Python 2.7 compatibility
@@ -13,6 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import os
 import pandas
 
+font = {'size': 22}
 
 numpy.set_printoptions(precision=3)
 
@@ -169,6 +170,9 @@ def temp(t):
     return T
 
 
+def pulp_yield(L, C):
+    return sum(L, axis=1)+sum(C, axis=1)
+
 # In[]:
 
 C_bulk = 0.5
@@ -230,8 +234,6 @@ for index, row in data.iterrows():
     X2_record = []
     X3_record = []
 
-    CA_bulk_record = []
-
     L1_record.append(L1)
     L2_record.append(L2)
     L3_record.append(L3)
@@ -283,10 +285,6 @@ for index, row in data.iterrows():
         X2_new = numpy.linalg.solve(A_C, B_C.dot(X2) - vec_X2(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
         X3_new = numpy.linalg.solve(A_C, B_C.dot(X3) - vec_X3(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC))
 
-        val = (dt / dx) * SF2 * (CA[1] - CA[0])
-        C_bulk += val
-        CA_bulk_record.append(C_bulk)
-
         L1 = L_new
         L2 = L2_new
         L3 = L3_new
@@ -327,6 +325,8 @@ for index, row in data.iterrows():
         X3_record.append(X3)
         X_record.append(X)
 
+        Alkali = OH*ones(N)
+        Sulfide = CS*ones(N)
         Carbo_record.append(carbo_sum(C, G, X))
         Kappa_record.append(Kappa(L, C))
 
@@ -340,14 +340,14 @@ for index, row in data.iterrows():
     print('Average Kappa number: {}'.format(Kappa_average[-1]))
 
     fig = plot.figure()
-    ax1 = fig.add_subplot(2, 1, 1)
+    ax1 = fig.add_subplot(2, 2, 1)
     ax1.set_title('Cook number: {}'.format(Run))
     ax2 = ax1.twinx()
 
     # ax1.plot()
     ax1.set_xlabel('time [min]')
-    ax1.set_ylabel('$\kappa$')
-    ax2.set_ylabel('Lignin [% mass]')
+    ax2.set_ylabel('$\kappa$')
+    ax1.set_ylabel('Lignin [% mass]')
     l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='$\kappa$')
     l2 = ax2.plot(t_grid, sum(L_record, axis=1), 'b-', label='$L_{tot}$')
 
@@ -355,14 +355,35 @@ for index, row in data.iterrows():
         ax1.plot(T, K_exp, 'rx')
 
     lines = l1 + l2
-    ax1.legend(lines, [l.get_label() for l in lines])
+    ax1.legend(lines, [l.get_label() for l in lines], fontsize=10)
 
-    ax3 = fig.add_subplot(2,1,2)
+    ax3 = fig.add_subplot(2,2,2)
     ax3.set_xlabel('time [min]')
     ax3.set_ylabel('Carbohydrates [% mass]')
-    l3 = ax3.plot(t_grid, sum(Carbo_record, axis=1), 'g-', label='$C_{tot}$')
-    ax3.legend()
-    fig.subplots_adjust(hspace = 0.4)
+    l3 = ax3.plot(t_grid, sum(Carbo_record, axis=1), 'g-', label='$Carb_{tot}$')
+    l4 = ax3.plot(t_grid, sum(C_record, axis=1), 'g--', label='$Cellulose$')
+    l5 = ax3.plot(t_grid, sum(G_record, axis=1), 'g-.', label='$Glucoman.$')
+    l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'g:', label='$Xylan$')
+    lines2 = l3 + l4 + l5 + l6
+    ax3.legend(lines2, [l.get_label() for l in lines2],fontsize = 10 )
+    fig.subplots_adjust(hspace = 0.33)
+    fig.subplots_adjust(wspace = 0.33)
+
+    ax11 = fig.add_subplot(2,2,3)
+    ax11.set_xlabel('time [min]')
+    ax11.set_ylabel('Yield')
+    ax11.plot(t_grid, pulp_yield(L_record, Carbo_record),'r', label = 'Pulp Yield')
+    ax11.legend(fontsize=10)
+
+    ax22 = fig.add_subplot(2,2,4)
+    ax22.set_xlabel('time [min]')
+    ax22.set_ylabel('Residual alkali')
+    l7 = ax22.plot(t_grid, Alkali, 'm', label='OH')
+    ax33 = ax22.twinx()
+    ax33.set_ylabel('Sulfide')
+    l8 = ax33.plot(t_grid, Sulfide,'m-.', label='CS')
+    lines3 = l7 + l8
+    ax22.legend(lines3, [l.get_label() for l in lines3], fontsize=10)
 
     Kappa_Lig_Carbo_plot.savefig()
     plot.close()
