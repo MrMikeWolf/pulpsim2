@@ -15,7 +15,7 @@ import os
 import pandas
 
 
-def plot_text_formatter(fonttype='sans-serif', fontsize=7, axislabel=7, xtick=7, ytick=7, label_pad=2):
+def plot_text_formatter(fonttype='sans-serif', fontsize=7, axislabel=9, xtick=9, ytick=9, label_pad=2):
     """
     Formats plot text.
     :param fonttype: Font type
@@ -30,6 +30,7 @@ def plot_text_formatter(fonttype='sans-serif', fontsize=7, axislabel=7, xtick=7,
     mpl.rcParams['xtick.labelsize'] = xtick
     mpl.rcParams['ytick.labelsize'] = ytick
     mpl.rcParams['axes.labelpad'] = label_pad
+    mpl.rcParams['figure.titlesize'] = 12
 
 numpy.set_printoptions(precision=3)
 
@@ -113,7 +114,7 @@ datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
 # Create object from which the data can be read from
-data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=21)
+data = pandas.read_excel(Data_file, sheetname="PULPING", skiprows=4, skipfooter=4)
 
 # Create pdf document to save figures to
 Kappa_Lig_Carbo_plot = PdfPages('Kappa_Lignin_Carbo.pdf')
@@ -358,11 +359,10 @@ for index, row in data.iterrows():
     plot_text_formatter()
 
     fig = plot.figure()
+    plot.suptitle('Cook number: {}'.format(Run))
     ax1 = fig.add_subplot(2, 2, 1)
-    ax1.set_title('Cook number: {}'.format(Run))
     ax2 = ax1.twinx()
 
-    # ax1.plot()
     ax1.set_xlabel('time [min]')
     ax2.set_ylabel('$\kappa$')
     ax1.set_ylabel('Lignin [% mass]')
