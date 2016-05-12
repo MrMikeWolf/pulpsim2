@@ -15,7 +15,7 @@ import os
 import pandas
 
 
-def plot_text_formatter(fonttype='Times New Roman', fontsize=14, axislabel=14, xtick=12, ytick=12, xtick_pad=5, ytick_pad=5):
+def plot_text_formatter(fonttype='sans-serif', fontsize=7, axislabel=7, xtick=7, ytick=7, label_pad=2):
     """
     Formats plot text.
     :param fonttype: Font type
@@ -29,8 +29,7 @@ def plot_text_formatter(fonttype='Times New Roman', fontsize=14, axislabel=14, x
     mpl.rcParams['axes.labelsize'] = axislabel
     mpl.rcParams['xtick.labelsize'] = xtick
     mpl.rcParams['ytick.labelsize'] = ytick
-    mpl.rcParams['xtick.major.pad'] = xtick_pad
-    mpl.rcParams['ytick.major.pad'] = ytick_pad
+    mpl.rcParams['axes.labelpad'] = label_pad
 
 numpy.set_printoptions(precision=3)
 
@@ -374,7 +373,7 @@ for index, row in data.iterrows():
         ax1.plot(T, K_exp, 'rx')
 
     lines = l1 + l2
-    ax1.legend(lines, [l.get_label() for l in lines], fontsize=10)
+    ax1.legend(lines, [l.get_label() for l in lines])
 
     ax3 = fig.add_subplot(2,2,2)
     ax3.set_xlabel('time [min]')
@@ -384,7 +383,7 @@ for index, row in data.iterrows():
     l5 = ax3.plot(t_grid, sum(G_record, axis=1), 'g-.', label='$Glucoman.$')
     l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'g:', label='$Xylan$')
     lines2 = l3 + l4 + l5 + l6
-    ax3.legend(lines2, [l.get_label() for l in lines2],fontsize = 10 )
+    ax3.legend(lines2, [l.get_label() for l in lines2])
     fig.subplots_adjust(hspace = 0.33)
     fig.subplots_adjust(wspace = 0.33)
 
@@ -392,7 +391,7 @@ for index, row in data.iterrows():
     ax11.set_xlabel('time [min]')
     ax11.set_ylabel('Yield')
     ax11.plot(t_grid, pulp_yield(L_record, Carbo_record),'r', label = 'Pulp Yield')
-    ax11.legend(fontsize=10)
+    ax11.legend()
 
     ax22 = fig.add_subplot(2,2,4)
     ax22.set_xlabel('time [min]')
@@ -402,7 +401,7 @@ for index, row in data.iterrows():
     ax33.set_ylabel('Sulfide')
     l8 = ax33.plot(t_grid, Sulfide,'m-.', label='CS')
     lines3 = l7 + l8
-    ax22.legend(lines3, [l.get_label() for l in lines3], fontsize=10)
+    ax22.legend(lines3, [l.get_label() for l in lines3])
 
     Kappa_Lig_Carbo_plot.savefig()
     plot.close()
