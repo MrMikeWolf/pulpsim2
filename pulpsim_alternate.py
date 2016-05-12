@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import numpy
 from numpy import exp, sum, average, ones
 from matplotlib import pyplot as plot
+import matplotlib as mpl
 
 # Python 2.7 compatibility
 try:
@@ -13,7 +14,23 @@ from matplotlib.backends.backend_pdf import PdfPages
 import os
 import pandas
 
-font = {'size': 22}
+
+def plot_text_formatter(fonttype='Times New Roman', fontsize=14, axislabel=14, xtick=12, ytick=12, xtick_pad=5, ytick_pad=5):
+    """
+    Formats plot text.
+    :param fonttype: Font type
+    :param fontsize:  Font size
+    :param axislabel: Axis label size
+    :param xtick: xtick label size
+    :param ytick: ytick label size
+    """
+    mpl.rcParams['font.size'] = fontsize
+    mpl.rcParams['font.family'] = fonttype
+    mpl.rcParams['axes.labelsize'] = axislabel
+    mpl.rcParams['xtick.labelsize'] = xtick
+    mpl.rcParams['ytick.labelsize'] = ytick
+    mpl.rcParams['xtick.major.pad'] = xtick_pad
+    mpl.rcParams['ytick.major.pad'] = ytick_pad
 
 numpy.set_printoptions(precision=3)
 
@@ -97,7 +114,7 @@ datadir = os.path.expanduser(config.get('paths', 'datadir'))
 Data_file = os.path.join(datadir, 'RFP 0339 - Pre-treatment part two.xlsx')
 
 # Create object from which the data can be read from
-data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=4)
+data = pandas.read_excel(Data_file, sheetname = "PULPING", skiprows=4, skipfooter=21)
 
 # Create pdf document to save figures to
 Kappa_Lig_Carbo_plot = PdfPages('Kappa_Lignin_Carbo.pdf')
@@ -338,6 +355,8 @@ for index, row in data.iterrows():
     # In[]:
 
     print('Average Kappa number: {}'.format(Kappa_average[-1]))
+
+    plot_text_formatter()
 
     fig = plot.figure()
     ax1 = fig.add_subplot(2, 2, 1)
