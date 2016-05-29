@@ -13,6 +13,7 @@ except ImportError:
 from matplotlib.backends.backend_pdf import PdfPages
 import os
 import pandas
+from tqdm import tqdm
 
 
 def plot_text_formatter(fonttype='sans-serif', fontsize=7, axislabel=9, xtick=9, ytick=9, label_pad=2):
@@ -196,9 +197,8 @@ C_bulk = 0.5
 SF2 = 0.001
 cnt = 0
 
-for index, row in data.iterrows():
+for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     cnt+=1
-    print('Execution count: {}'.format(cnt))
 
     AA = row['[AA]        g/L Na2O']
     Sulf = 0.3264
@@ -207,6 +207,8 @@ for index, row in data.iterrows():
     T = row['total min'] # cook time
     K_exp = row['Kappa number']
     Run = row['COOK']
+    Yield = row[r'total yield']
+    Lig = row['Insoluble Lignin']
 
     CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
     OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
@@ -215,21 +217,45 @@ for index, row in data.iterrows():
     dt = float(T) / float(N - 1)
     t_grid = numpy.array([n * dt for n in range(N)])
 
-    L1 = initial(9)
-    L2 = initial(19)
-    L3 = initial(1.5)
+    # The three species of each compound L,C,G and X. The composition of each species in a compound are given in
 
-    C1 = initial(2.4)
-    C2 = initial(4.2)
-    C3 = initial(36.9)
+    # research on Picea Abies and i will assume the same ratio for each spieces in the compounds L,C,G andX.
 
-    G1 = initial(10.3)
-    G2 = initial(3.4)
-    G3 = initial(6.1)
+    # Fengel and Wenger = FW_i,
+    # Lindsrom and Lingdgren = LL_i,
+    # where i = L,C,G,X
 
-    X1 = initial(0.9)
-    X2 = initial(1.7)
-    X3 = initial(4.6)
+    FW_L = 28
+    FW_C = 40.4
+    FW_G = 8.9
+    FW_X = 22.2
+
+    LL_L = 29.5
+    LL_C = 43.5
+    LL_G = 7.2
+    LL_X = 19.8
+
+    # Weight_i = W_i
+    W_L = FW_L / LL_L
+    W_C = FW_C / LL_C
+    W_G = FW_G / LL_G
+    W_X = FW_X / LL_X
+
+    L1 = initial(9) * W_L
+    L2 = initial(19) * W_L
+    L3 = initial(1.5) * W_L
+
+    C1 = initial(2.4) * W_C
+    C2 = initial(4.2) * W_C
+    C3 = initial(36.9) * W_C
+
+    G1 = initial(10.3) * W_G
+    G2 = initial(3.4) * W_G
+    G3 = initial(6.1) * W_G
+
+    X1 = initial(0.9) * W_X
+    X2 = initial(1.7) * W_X
+    X3 = initial(4.6) * W_X
 
     CA = initial(OH)
 
@@ -351,11 +377,6 @@ for index, row in data.iterrows():
     # ### Plot the Numerical Solution
 
     # Let us take a look at the numerical solution we attain after `N` time steps.
-
-    # In[]:
-
-    print('Average Kappa number: {}'.format(Kappa_average[-1]))
-
     plot_text_formatter()
 
     fig = plot.figure()
@@ -363,18 +384,23 @@ for index, row in data.iterrows():
     ax1 = fig.add_subplot(2, 2, 1)
     ax2 = ax1.twinx()
 
+    # Kappa number and Lignin plot
     ax1.set_xlabel('time [min]')
-    ax2.set_ylabel('$\kappa$')
-    ax1.set_ylabel('Lignin [% mass]')
+    ax1.set_ylabel('$\kappa$')
+    ax2.set_ylabel('Lignin [% mass]')
+
     l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='$\kappa$')
     l2 = ax2.plot(t_grid, sum(L_record, axis=1), 'b-', label='$L_{tot}$')
 
     if type(K_exp) == float:
         ax1.plot(T, K_exp, 'rx')
+    # if type(Lig) == float:
+        ax2.plot(T, Lig, 'bx')
 
     lines = l1 + l2
     ax1.legend(lines, [l.get_label() for l in lines])
 
+    # Carbohydrates plotting
     ax3 = fig.add_subplot(2,2,2)
     ax3.set_xlabel('time [min]')
     ax3.set_ylabel('Carbohydrates [% mass]')
@@ -387,12 +413,16 @@ for index, row in data.iterrows():
     fig.subplots_adjust(hspace = 0.33)
     fig.subplots_adjust(wspace = 0.33)
 
+    # Yield plot
     ax11 = fig.add_subplot(2,2,3)
     ax11.set_xlabel('time [min]')
     ax11.set_ylabel('Yield')
+    if type(Yield) == float:
+        ax11.plot(T, Yield, 'rx')
     ax11.plot(t_grid, pulp_yield(L_record, Carbo_record),'r', label = 'Pulp Yield')
     ax11.legend()
 
+    # Alkali
     ax22 = fig.add_subplot(2,2,4)
     ax22.set_xlabel('time [min]')
     ax22.set_ylabel('Residual alkali')
