@@ -48,13 +48,6 @@ J = 100
 dx = float(L) / float(J - 1)
 x_grid = numpy.array([j * dx for j in range(J)])
 
-# ### Specify System Parameters and the Reaction Term
-
-
-def sigma_D(T):
-    D = 1.5e-2 * (T ** 0.5) * exp(-4870 / 1.9872 / T)
-    return D * dt / (2 * dx * dx)
-
 # Carbohhdrates are the sum of Cellulose, Glucomannan and Xylan
 
 
@@ -89,17 +82,12 @@ def initial(xi):
 
 # The matrices that we need to construct are all tridiagonal so they are easy to construct with
 
-# In[6]:
-
 A_L = numpy.identity(J)
 B_L = A_L
 A_C = numpy.identity(J)
 B_C = A_C
 
-# Solve the System Iteratively
-
-# In[]:
-
+# Unpack the data from experimental results
 
 config = ConfigParser()
 configfile = 'config.cfg'
@@ -191,6 +179,10 @@ def temp(t):
 def pulp_yield(L, C):
     return sum(L, axis=1)+sum(C, axis=1)
 
+
+def Kappa(L, CH):
+    return 500*(L/(L+CH))+2
+
 # In[]:
 
 C_bulk = 0.5
@@ -209,6 +201,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     Run = row['COOK']
     Yield = row[r'total yield']
     Lig = row['Insoluble Lignin']
+    xylose = row['Xylose']
+    mannose = row['Mannose']
 
     CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
     OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
@@ -298,9 +292,6 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     Carbo_record = [carbo_sum(C1+C2+C3, G1+G2+G3, X1+X2+X3)]
     Kappa_record = []
 
-
-    def Kappa(L, CH):
-        return 500*(L/(L+CH))+2
     L = L1+L2+L3
     Carb = C1+C2+C3+G1+G2+G3+X1+X2+X3
     Kappa_record.append(Kappa(L, Carb))
@@ -308,7 +299,6 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     for ti in range(1, N):
         t = ti*(T/N)
         TC = temp(t)
-        sigma = sigma_D(TC)
 
         vec_L1,vec_L2,vec_L3,vec_C1,vec_C2,vec_C3,vec_G1,vec_G2,vec_G3,vec_X1,vec_X2,vec_X3 = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
 
@@ -394,7 +384,6 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     if type(K_exp) == float:
         ax1.plot(T, K_exp, 'rx')
-    # if type(Lig) == float:
         ax2.plot(T, Lig, 'bx')
 
     lines = l1 + l2
@@ -404,14 +393,17 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     ax3 = fig.add_subplot(2,2,2)
     ax3.set_xlabel('time [min]')
     ax3.set_ylabel('Carbohydrates [% mass]')
-    l3 = ax3.plot(t_grid, sum(Carbo_record, axis=1), 'g-', label='$Carb_{tot}$')
-    l4 = ax3.plot(t_grid, sum(C_record, axis=1), 'g--', label='$Cellulose$')
-    l5 = ax3.plot(t_grid, sum(G_record, axis=1), 'g-.', label='$Glucoman.$')
-    l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'g:', label='$Xylan$')
+    l3 = ax3.plot(t_grid, sum(Carbo_record, axis=1), 'darkgreen', label='$Carb_{tot}$')
+    l4 = ax3.plot(t_grid, sum(C_record, axis=1), 'mediumseagreen', label='$Cellulose$')
+    l5 = ax3.plot(t_grid, sum(G_record, axis=1), 'limegreen', label='$Glucoman.$')
+    l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'darkseagreen', label='$Xylan$')
     lines2 = l3 + l4 + l5 + l6
     ax3.legend(lines2, [l.get_label() for l in lines2])
-    fig.subplots_adjust(hspace = 0.33)
-    fig.subplots_adjust(wspace = 0.33)
+    if type(mannose) == float or type(xylose) == float:
+        ax3.plot(T, mannose, marker='x', color='limegreen')
+        ax3.plot(T, xylose, marker='x', color='darkseagreen')
+    fig.subplots_adjust(hspace=0.33)
+    fig.subplots_adjust(wspace=0.33)
 
     # Yield plot
     ax11 = fig.add_subplot(2,2,3)
