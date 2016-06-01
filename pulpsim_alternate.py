@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 import numpy
-from numpy import exp, sum, average, ones
+from numpy import exp, sum, average, ones, array
 from matplotlib import pyplot as plot
 import matplotlib as mpl
 
@@ -189,6 +189,22 @@ C_bulk = 0.5
 SF2 = 0.001
 cnt = 0
 
+# Parity plot
+
+# Model values
+parity_lig = []
+parity_K = []
+parity_yield = []
+parity_xylan = []
+parity_mannose = []
+
+# Experimental values
+exp_lig = []
+exp_K = []
+exp_yield = []
+exp_xylan = []
+exp_mannose = []
+
 for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     cnt+=1
 
@@ -203,6 +219,16 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     Lig = row['Insoluble Lignin']
     xylose = row['Xylose']
     mannose = row['Mannose']
+
+    if Run == 3117 or Run == 3124 or Run == 3126:
+        continue
+
+    # Experimental results
+    exp_lig.append(Lig)
+    exp_K.append(K_exp)
+    exp_yield.append(Yield)
+    exp_xylan.append(xylose)
+    exp_mannose.append(mannose)
 
     CS = C_S(AA, Sulf) / MM_Na2S  # Molar [mol/L]
     OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
@@ -364,7 +390,13 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
         Kappa_record.append(Kappa(L, C))
 
     Kappa_average = average(Kappa_record, axis = 1)
-    # ### Plot the Numerical Solution
+
+    # Parity plot
+    parity_K.append(Kappa_average[-1])
+    parity_lig.append(sum(L_record, axis=1)[-1])
+    parity_yield.append(pulp_yield(L_record, Carbo_record)[-1])
+    parity_xylan.append(sum(X_record, axis=1)[-1])
+    parity_mannose.append(sum(G_record, axis=1)[-1])
 
     # Let us take a look at the numerical solution we attain after `N` time steps.
     plot_text_formatter()
@@ -381,11 +413,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='$\kappa$')
     l2 = ax2.plot(t_grid, sum(L_record, axis=1), 'b-', label='$L_{tot}$')
-
-    if type(K_exp) == float:
-        ax1.plot(T, K_exp, 'rx')
-        ax2.plot(T, Lig, 'bx')
-
+    ax1.plot(T, K_exp, 'rx')  # Kappa experimental
+    ax2.plot(T, Lig, 'bx')    # Lignin experimental
     lines = l1 + l2
     ax1.legend(lines, [l.get_label() for l in lines])
 
@@ -399,9 +428,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'darkseagreen', label='$Xylan$')
     lines2 = l3 + l4 + l5 + l6
     ax3.legend(lines2, [l.get_label() for l in lines2])
-    if type(mannose) == float or type(xylose) == float:
-        ax3.plot(T, mannose, marker='x', color='limegreen')
-        ax3.plot(T, xylose, marker='x', color='darkseagreen')
+    ax3.plot(T, mannose, marker='x', color='limegreen')    # Mannose experimental
+    ax3.plot(T, xylose, marker='x', color='darkseagreen')  # Xylan experimental
     fig.subplots_adjust(hspace=0.33)
     fig.subplots_adjust(wspace=0.33)
 
@@ -409,9 +437,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     ax11 = fig.add_subplot(2,2,3)
     ax11.set_xlabel('time [min]')
     ax11.set_ylabel('Yield')
-    if type(Yield) == float:
-        ax11.plot(T, Yield, 'rx')
-    ax11.plot(t_grid, pulp_yield(L_record, Carbo_record),'r', label = 'Pulp Yield')
+    ax11.plot(T, Yield, 'rx')  # Yield experimental
+    ax11.plot(t_grid, pulp_yield(L_record, Carbo_record), 'r', label='Pulp Yield')
     ax11.legend()
 
     # Alkali
@@ -428,4 +455,52 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     Kappa_Lig_Carbo_plot.savefig()
     plot.close()
 
+
+def parity_error(experiment, model):
+    return max([abs((E-M)/E) for E, M in zip(experiment, model)])
+
+
+def error_plot(axis, error, limit):
+    y = x = [0, limit]
+    axis.plot(x, y)
+    axis.plot([0, limit], [0, limit*(1-error)], 'r-.')
+    axis.plot([0, limit], [0, limit*(1+error)], 'k-.')
+
+
+fig = plot.figure()
+# plot.suptitle('parity plot')
+ax1 = fig.add_subplot(3, 2, 1)
+ax1.scatter(exp_lig, parity_lig)
+error_plot(ax1, parity_error(exp_lig, parity_lig), 30)
+ax1.set_xlabel('Lignin exp')
+ax1.set_ylabel('Lignin model')
+
+
+ax2 = fig.add_subplot(3, 2, 2)
+ax2.scatter(exp_K, parity_K)
+error_plot(ax2, parity_error(exp_K, parity_K), 160)
+ax2.set_xlabel('$\kappa$ exp')
+ax2.set_ylabel('$\kappa$')
+
+ax3 = fig.add_subplot(3, 2, 3)
+ax3.scatter(exp_yield, parity_yield)
+error_plot(ax3, parity_error(exp_yield, parity_yield), 80)
+ax3.set_xlabel('Yield exp')
+ax3.set_ylabel('Yield model')
+
+ax4 = fig.add_subplot(3, 2, 4)
+ax4.scatter(exp_xylan, parity_xylan)
+error_plot(ax4, parity_error(exp_xylan, parity_xylan), 10)
+ax4.set_xlabel('Xylan exp')
+ax4.set_ylabel('Xylan model')
+
+ax5 = fig.add_subplot(3, 2, 5)
+ax5.scatter(exp_mannose, parity_mannose)
+error_plot(ax5, parity_error(exp_mannose, parity_mannose), 14)
+ax5.set_xlabel('Mannose exp')
+ax5.set_ylabel('Mannose model')
+
+plot.tight_layout()
+Kappa_Lig_Carbo_plot.savefig()
+plot.close()
 Kappa_Lig_Carbo_plot.close()
