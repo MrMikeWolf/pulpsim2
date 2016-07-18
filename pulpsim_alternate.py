@@ -152,19 +152,20 @@ def f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC):
 
 # In[]
 
-def temp(t):
+def temp(t, th, Tf):
     """ Temperature function
+    t - at a specific time
+    th - heating time
+    Tf - final temperature
     """
 
-    # Heating time in minutes
-    th = 120
     # Starting temperature
-    To = 273 + 2
+    To = 273 + 25
 
     # Gradient at which heat changes degC/min
     # The gradient is specified such that a temp 
     # of 170 degC is reached at 'th'
-    m = ((170 + 273) - To) / 120
+    m = ((Tf + 273) - To) / th
 
     if t <= th:
         # Heating time
@@ -210,9 +211,9 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     AA = row['[AA]        g/L Na2O']
     Sulf = 0.3264
-    tf = row['Tmax C'] + 273
+    Tf = row['Tmax C'] + 273
     th = row['to Tmax min']
-    T = row['total min'] # cook time
+    t_tot = row['total min'] # cook time
     K_exp = row['Kappa number']
     Run = row['COOK']
     Yield = row[r'total yield']
@@ -234,7 +235,7 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     OH = COH(AA, Sulf) / MM_NaOH  # Molar [mol/L]
 
     N = 1000
-    dt = float(T) / float(N - 1)
+    dt = float(t_tot) / float(N - 1)
     t_grid = numpy.array([n * dt for n in range(N)])
 
     # The three species of each compound L,C,G and X. The composition of each species in a compound are given in
@@ -323,8 +324,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     Kappa_record.append(Kappa(L, Carb))
 
     for ti in range(1, N):
-        t = ti*(T/N)
-        TC = temp(t)
+        t = ti*(t_tot / N)
+        TC = temp(t,th,Tf)
 
         vec_L1,vec_L2,vec_L3,vec_C1,vec_C2,vec_C3,vec_G1,vec_G2,vec_G3,vec_X1,vec_X2,vec_X3 = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
 
@@ -413,8 +414,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     l1 = ax1.plot(t_grid, Kappa_average, 'r-.', label='$\kappa$')
     l2 = ax2.plot(t_grid, sum(L_record, axis=1), 'b-', label='$L_{tot}$')
-    ax1.plot(T, K_exp, 'rx')  # Kappa experimental
-    ax2.plot(T, Lig, 'bx')    # Lignin experimental
+    ax1.plot(t_tot, K_exp, 'rx')  # Kappa experimental
+    ax2.plot(t_tot, Lig, 'bx')    # Lignin experimental
     lines = l1 + l2
     ax1.legend(lines, [l.get_label() for l in lines])
 
@@ -428,8 +429,8 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     l6 = ax3.plot(t_grid, sum(X_record, axis=1), 'darkseagreen', label='$Xylan$')
     lines2 = l3 + l4 + l5 + l6
     ax3.legend(lines2, [l.get_label() for l in lines2])
-    ax3.plot(T, mannose, marker='x', color='limegreen')    # Mannose experimental
-    ax3.plot(T, xylose, marker='x', color='darkseagreen')  # Xylan experimental
+    ax3.plot(t_tot, mannose, marker='x', color='limegreen')    # Mannose experimental
+    ax3.plot(t_tot, xylose, marker='x', color='darkseagreen')  # Xylan experimental
     fig.subplots_adjust(hspace=0.33)
     fig.subplots_adjust(wspace=0.33)
 
@@ -437,7 +438,7 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     ax11 = fig.add_subplot(2,2,3)
     ax11.set_xlabel('time [min]')
     ax11.set_ylabel('Yield')
-    ax11.plot(T, Yield, 'rx')  # Yield experimental
+    ax11.plot(t_tot, Yield, 'rx')  # Yield experimental
     ax11.plot(t_grid, pulp_yield(L_record, Carbo_record), 'r', label='Pulp Yield')
     ax11.legend()
 
