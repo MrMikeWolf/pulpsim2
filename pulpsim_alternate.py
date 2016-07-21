@@ -61,17 +61,46 @@ MM_NaOH = 23 + 16 + 1
 MM_Na2S = 23 * 2 + 32
 MM_Na2O = 23 * 2 + 16
 
+OD = 750  # Oven dried wood charge which is 750g in all cases
+LW = 4.1
 
 def COH(AA, S):
-    return AA * (2 * MM_NaOH / MM_Na2O) * (1 - S)
+    """
+
+    Parameters
+    ----------
+    LW : Liquor to Wood ratio in kg/kg
+    AA : Active Alkali to Oven Dried (OD) wood %
+    S : Sulfidity as a %
+
+    Returns
+    -------
+    [OH] : Concentration of NaOH of the liquor in units g/L Na2O
+
+    """
+
+    AA_Na2O = (AA/100)*(OD/(OD*LW))*1000 # Active alkali in concentration units g/L Na2O
+    return AA_Na2O * (2 * MM_NaOH / MM_Na2O) * (1 - S)
 
 
 def C_S(AA, S):
-    return AA * (2 * MM_NaOH / MM_Na2O) * S
+
+    """
+
+    Parameters
+    ----------
+    AA : Active alkali to OD wood %
+    S : Sulfidity as a %
+
+    Returns
+    -------
+    [HS] - Hydrogen sulfide concentration in units g/L Na2O
+
+    """
+    AA_Na2O = (AA/100)*(OD/(OD*LW))*1000
+    return AA_Na2O * (2 * MM_NaOH / MM_Na2O) * S
 
 # Specify the Initial Concentrations
-
-# In[]:
 
 
 def initial(xi):
@@ -150,13 +179,23 @@ def f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC):
     return dL1dt, dL2dt, dL3dt, dC1dt, dC2dt, dC3dt, dG1dt, dG2dt, dG3dt, dX1dt, dX2dt, dX3dt
 
 
-# In[]
+# Define Temperature ramp function
 
 def temp(t, th, Tf):
     """ Temperature function
     t - at a specific time
     th - heating time
     Tf - final temperature
+
+    Parameters
+    ----------
+    t : time in minutes
+    th : heating time in minutes (time to reach maximum temperature)
+    Tf : Final temperature in Kelvin
+
+    Returns
+    -------
+    T : Temperature at time t in Kelvin
     """
 
     # Starting temperature
@@ -165,7 +204,7 @@ def temp(t, th, Tf):
     # Gradient at which heat changes degC/min
     # The gradient is specified such that a temp 
     # of 170 degC is reached at 'th'
-    m = ((Tf + 273) - To) / th
+    m = (Tf - To) / th
 
     if t <= th:
         # Heating time
@@ -184,13 +223,11 @@ def pulp_yield(L, C):
 def Kappa(L, CH):
     return 500*(L/(L+CH))+2
 
-# In[]:
+# Create counter for iterations
 
-C_bulk = 0.5
-SF2 = 0.001
 cnt = 0
 
-# Parity plot
+# Parity plot empty lists
 
 # Model values
 parity_lig = []
@@ -209,7 +246,7 @@ exp_mannose = []
 for index, row in tqdm(data.iterrows(), total=data.shape[0]):
     cnt+=1
 
-    AA = row['[AA]        g/L Na2O']
+    AA = row['AA to OD wood        %']
     Sulf = 0.3264
     Tf = row['Tmax C'] + 273
     th = row['to Tmax min']
@@ -248,13 +285,13 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     FW_L = 28
     FW_C = 40.4
-    FW_G = 8.9
-    FW_X = 22.2
+    FW_G = 22.2
+    FW_X = 8.9
 
     LL_L = 29.5
     LL_C = 43.5
-    LL_G = 7.2
-    LL_X = 19.8
+    LL_G = 19.8
+    LL_X = 7.2
 
     # Weight_i = W_i
     W_L = FW_L / LL_L
@@ -325,7 +362,7 @@ for index, row in tqdm(data.iterrows(), total=data.shape[0]):
 
     for ti in range(1, N):
         t = ti*(t_tot / N)
-        TC = temp(t,th,Tf)
+        TC = temp(t, th, Tf)
 
         vec_L1,vec_L2,vec_L3,vec_C1,vec_C2,vec_C3,vec_G1,vec_G2,vec_G3,vec_X1,vec_X2,vec_X3 = f_vec(L1,L2,L3, C1,C2,C3, G1,G2,G3, X1,X2,X3, CA, TC)
 
